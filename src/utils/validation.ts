@@ -173,11 +173,33 @@ export const validateAdTag = (tag: AdTag, plan: ParsedMediaPlan): ValidationResu
         storeBundleStatusText = "Bundle present, StoreURL missing";
     }
 
+    // Check 4: Duration (vmaxl)
+    let durationStatus: ValidationStatus = 'N/A';
+    if (record && record.adDuration) {
+        const lowerUrl = vastUrl.toLowerCase();
+        // Extract vmaxl value: match vmaxl=123 or vmaxl%3d123
+        const match = lowerUrl.match(/vmaxl(?:=|%3d)(\d+)/);
+        if (match) {
+            const vmaxlValue = parseInt(match[1], 10);
+            const expectedVmaxl = record.adDuration + 1;
+
+            if (vmaxlValue === expectedVmaxl) {
+                durationStatus = 'Valid';
+            } else {
+                durationStatus = 'Invalid';
+                summaryParts.push(`Duration Mismatch: Plan Duration=${record.adDuration} (Expected vmaxl=${expectedVmaxl}) but Tag vmaxl=${vmaxlValue}.`);
+            }
+        } else {
+            durationStatus = 'Warning';
+            summaryParts.push(`Plan has Duration=${record.adDuration} but Tag is missing 'vmaxl' param.`);
+        }
+    }
+
     // Final Summary
     let finalStatus = "PASS";
-    if (tagNameMatchStatus === 'Mismatch' || deviceTypeStatus === 'Invalid') {
+    if (tagNameMatchStatus === 'Mismatch' || deviceTypeStatus === 'Invalid' || durationStatus === 'Invalid') {
         finalStatus = "FAIL";
-    } else if (filenameCheckStatus === 'Warning') {
+    } else if (filenameCheckStatus === 'Warning' || durationStatus === 'Warning') {
         finalStatus = "WARN";
     }
 
@@ -195,6 +217,7 @@ export const validateAdTag = (tag: AdTag, plan: ParsedMediaPlan): ValidationResu
         deviceTypeStatus,
         storeBundleValidationStatus,
         filenameCheckStatus,
+        durationStatus,
         summary
     };
 };

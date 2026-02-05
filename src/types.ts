@@ -1,6 +1,7 @@
 export interface MediaPlanRecord {
     dealName: string;
     deviceTargeted: string; // 'CTV', 'AOS', 'IOS', etc.
+    adDuration?: number;
 }
 
 export interface AdTag {
@@ -25,6 +26,7 @@ export interface ValidationResult {
     deviceTypeStatus: ValidationStatus;
     storeBundleValidationStatus: ValidationStatus;
     filenameCheckStatus: 'Valid' | 'Warning' | 'N/A';
+    durationStatus: ValidationStatus;
 
     summary: string;
 }

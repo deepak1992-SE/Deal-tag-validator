@@ -47,6 +47,10 @@ export const parseMediaPlan = async (file: File): Promise<ParsedMediaPlan> => {
                     const s = String(cell).toLowerCase().trim();
                     return s === 'device targeted' || s === 'devicetargeted';
                 });
+                const durationIdx = headerRow.findIndex((cell: any) => {
+                    const s = String(cell).toLowerCase().trim();
+                    return s === 'ad duration(sec)' || s === 'ad duration';
+                });
 
                 const plan: ParsedMediaPlan = {};
 
@@ -62,6 +66,7 @@ export const parseMediaPlan = async (file: File): Promise<ParsedMediaPlan> => {
                     }
 
                     const deviceTarget = deviceTargetIdx !== -1 ? row[deviceTargetIdx] : undefined;
+                    const durationVal = durationIdx !== -1 ? row[durationIdx] : undefined;
 
                     if (dealName) {
                         const cleanDealName = String(dealName).trim();
@@ -70,6 +75,7 @@ export const parseMediaPlan = async (file: File): Promise<ParsedMediaPlan> => {
                             plan[cleanDealName] = {
                                 dealName: cleanDealName,
                                 deviceTargeted: deviceTarget ? String(deviceTarget).trim() : "",
+                                adDuration: durationVal ? Number(durationVal) : undefined
                             };
                         }
                     }

@@ -55,8 +55,9 @@ files.forEach(file => {
     const dealNameIdx = findColumnIndex(header, ['Deal Name', 'deal name', 'DealName']);
     const dealIdIdx = findColumnIndex(header, ['Deal ID', 'deal id']);
     const deviceTargetIdx = findColumnIndex(header, ['Device targeted', 'device targeted', 'DeviceTargeted']);
+    const durationIdx = findColumnIndex(header, ['Ad duration(sec)', 'ad duration']);
 
-    console.log(`Indices - DealName: ${dealNameIdx}, DealID: ${dealIdIdx}, DeviceTarget: ${deviceTargetIdx}`);
+    console.log(`Indices - DealName: ${dealNameIdx}, DealID: ${dealIdIdx}, DeviceTarget: ${deviceTargetIdx}, Duration: ${durationIdx}`);
 
     console.log("Extracted Data (First 5 records):");
     let count = 0;
@@ -70,9 +71,10 @@ files.forEach(file => {
         }
 
         const deviceTarget = deviceTargetIdx !== -1 ? row[deviceTargetIdx] : undefined;
+        const duration = durationIdx !== -1 ? row[durationIdx] : undefined;
 
         if (dealName) {
-            console.log(`Row ${i}: Deal="${dealName}", Device="${deviceTarget}"`);
+            console.log(`Row ${i}: Deal="${dealName}", Device="${deviceTarget}", Duration="${duration}"`);
             count++;
         }
     }
