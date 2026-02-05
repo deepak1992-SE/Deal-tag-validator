@@ -14,21 +14,66 @@ export const parseMediaPlan = async (file: File): Promise<ParsedMediaPlan> => {
                 const workbook = XLSX.read(data, { type: 'binary' });
                 const sheetName = workbook.SheetNames[0]; // Assume first sheet
                 const worksheet = workbook.Sheets[sheetName];
-                const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" }) as any[];
+
+                // Read all data as arrays of values to find the header row
+                const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" }) as any[][];
+
+                // Find header row: look for row containing "Deal Name" or "Deal ID" AND "Device targeted"
+                let headerRowIndex = -1;
+                for (let i = 0; i < Math.min(20, rawData.length); i++) {
+                    const row = rawData[i];
+                    const rowStr = JSON.stringify(row).toLowerCase();
+                    if ((rowStr.includes('deal name') || rowStr.includes('deal id')) &&
+                        (rowStr.includes('device targeted') || rowStr.includes('devicetargeted'))) {
+                        headerRowIndex = i;
+                        break;
+                    }
+                }
+
+                if (headerRowIndex === -1) {
+                    throw new Error("Could not find valid header row (must contain 'Deal Name'/'Deal ID' and 'Device targeted')");
+                }
+
+                const headerRow = rawData[headerRowIndex];
+                const dealNameIdx = headerRow.findIndex((cell: any) => {
+                    const s = String(cell).toLowerCase().trim();
+                    return s === 'deal name' || s === 'dealname';
+                });
+                const dealIdIdx = headerRow.findIndex((cell: any) => {
+                    const s = String(cell).toLowerCase().trim();
+                    return s === 'deal id' || s === 'dealid';
+                });
+                const deviceTargetIdx = headerRow.findIndex((cell: any) => {
+                    const s = String(cell).toLowerCase().trim();
+                    return s === 'device targeted' || s === 'devicetargeted';
+                });
 
                 const plan: ParsedMediaPlan = {};
 
-                json.forEach((row) => {
-                    const dealName = row['Deal Name'] || row['deal name'] || row['DealName'];
-                    const deviceTarget = row['Device targeted'] || row['device targeted'] || row['DeviceTargeted'];
+                // Iterate over rows after the header
+                for (let i = headerRowIndex + 1; i < rawData.length; i++) {
+                    const row = rawData[i];
+                    if (!row || row.length === 0) continue;
+
+                    let dealName = dealNameIdx !== -1 ? row[dealNameIdx] : undefined;
+                    // Fallback to Deal ID if Deal Name is missing/empty
+                    if ((!dealName || String(dealName).trim() === '') && dealIdIdx !== -1) {
+                        dealName = row[dealIdIdx];
+                    }
+
+                    const deviceTarget = deviceTargetIdx !== -1 ? row[deviceTargetIdx] : undefined;
 
                     if (dealName) {
-                        plan[String(dealName).trim()] = {
-                            dealName: String(dealName).trim(),
-                            deviceTargeted: String(deviceTarget).trim(),
-                        };
+                        const cleanDealName = String(dealName).trim();
+                        // Only add if we have a valid deal name
+                        if (cleanDealName) {
+                            plan[cleanDealName] = {
+                                dealName: cleanDealName,
+                                deviceTargeted: deviceTarget ? String(deviceTarget).trim() : "",
+                            };
+                        }
                     }
-                });
+                }
 
                 resolve(plan);
             } catch (err) {
