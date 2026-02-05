@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+    /* Brand Colors */
+    --color-brand-navy: #003B5C;
+    --color-brand-blue: #2581AE;
+
+    /* Background Colors */
+    --color-bg-main: #F4F6F8;
+    --color-bg-paper: #FFFFFF;
+
+    /* Status Colors */
+    --color-status-pass-bg: #E6F4EA;
+    --color-status-pass-text: #1E8E3E;
+
+    --color-status-fail-bg: #FCE8E6;
+    --color-status-fail-text: #C5221F;
+
+    --color-status-warn-bg: #FEF7E0;
+    --color-status-warn-text: #F19E39;
+
+    /* Fonts */
+    --font-sans: Inter, Roboto, system-ui, sans-serif;
+    --font-mono: "Courier New", Courier, monospace;
+}
