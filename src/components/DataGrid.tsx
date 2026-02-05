@@ -49,6 +49,7 @@ export const DataGrid: React.FC<DataGridProps> = ({ results }) => {
                             <th className="px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-tight text-xs">Tag Name (TXT)</th>
                             <th className="px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-tight text-xs">Target</th>
                             <th className="px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-tight text-xs">devicetype=3</th>
+                            <th className="px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-tight text-xs">Duration (vmaxl)</th>
                             <th className="px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-tight text-xs">App Params</th>
                             <th className="px-3 py-2 text-left font-semibold text-gray-600 uppercase tracking-tight text-xs">Source</th>
                         </tr>
@@ -111,6 +112,21 @@ export const DataGrid: React.FC<DataGridProps> = ({ results }) => {
                                             )}
                                         </td>
 
+                                        {/* Duration Column */}
+                                        <td className="px-3 py-1.5 whitespace-nowrap text-xs">
+                                            {row.durationStatus !== 'N/A' ? (
+                                                row.durationStatus === 'Valid' ? (
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800 font-mono">Pass</span>
+                                                ) : row.durationStatus === 'Warning' ? (
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-800 font-mono">Warn</span>
+                                                ) : (
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-800 font-mono">Fail</span>
+                                                )
+                                            ) : (
+                                                <span className="text-gray-400">-</span>
+                                            )}
+                                        </td>
+
                                         {/* App Params Column */}
                                         <td className="px-3 py-1.5 whitespace-nowrap text-xs">
                                             <div className="flex gap-1">
@@ -160,6 +176,11 @@ export const DataGrid: React.FC<DataGridProps> = ({ results }) => {
                                                                 label="Filename Consistency"
                                                                 status={row.filenameCheckStatus === 'Valid' || row.filenameCheckStatus === 'N/A' ? 'pass' : 'warn'}
                                                                 text={row.filenameCheckStatus}
+                                                            />
+                                                            <ResultDetail
+                                                                label="Duration Check (vmaxl)"
+                                                                status={row.durationStatus === 'Valid' || row.durationStatus === 'N/A' ? 'pass' : row.durationStatus === 'Warning' ? 'warn' : 'fail'}
+                                                                text={row.durationStatus}
                                                             />
                                                         </ul>
                                                     </div>
