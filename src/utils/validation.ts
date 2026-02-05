@@ -161,16 +161,71 @@ export const validateAdTag = (tag: AdTag, plan: ParsedMediaPlan): ValidationResu
 
     // Check 3: StoreURL & Bundle
     let storeBundleStatusText = "Normal";
-    if (hasStoreUrl && !hasBundle) {
-        storeBundleStatusText = "StoreURL present, Bundle missing";
-        storeBundleValidationStatus = 'Valid';
-        summaryParts.push("StoreURL present without Bundle (Valid).");
-    } else if (hasStoreUrl && hasBundle) {
-        storeBundleStatusText = "Both Params Present";
-    } else if (!hasStoreUrl && !hasBundle) {
-        storeBundleStatusText = "Both Missing";
+
+    if (record) {
+        const deviceTargetUpper = deviceTarget.toUpperCase();
+        const isCTV = deviceTargetUpper.includes('CTV');
+        const isMobile = deviceTargetUpper.includes('AOS') || deviceTargetUpper.includes('IOS') || deviceTargetUpper.includes('MOBILE');
+
+        if (isCTV) {
+            // Rule: CTV requires BOTH storeurl AND bundle
+            if (hasStoreUrl && hasBundle) {
+                storeBundleStatusText = "Both Params Present";
+                storeBundleValidationStatus = 'Valid';
+            } else {
+                storeBundleValidationStatus = 'Invalid';
+                // Determine what is missing
+                if (!hasStoreUrl && !hasBundle) {
+                    storeBundleStatusText = "Both Missing";
+                    summaryParts.push("CTV Deal missing both StoreURL and Bundle.");
+                } else if (!hasStoreUrl) {
+                    storeBundleStatusText = "Bundle present, StoreURL missing";
+                    summaryParts.push("CTV Deal missing StoreURL.");
+                } else {
+                    storeBundleStatusText = "StoreURL present, Bundle missing";
+                    summaryParts.push("CTV Deal missing Bundle.");
+                }
+            }
+        } else if (isMobile) {
+            // Rule: Mobile requires StoreURL. Bundle is usually optional or good to have.
+            // User said: "Mobile tag store URL is required"
+            // We interpret this as: Must have StoreURL. Bundle state doesn't cause failure?
+            // "just to clarity for Mobile tag store URL is required and for CTV both store URL and Bundle are required" -- this usually implies Bundle is NOT required for Mobile, or at least lack of it is fine.
+
+            if (hasStoreUrl) {
+                storeBundleValidationStatus = 'Valid';
+                if (hasBundle) {
+                    storeBundleStatusText = "Both Params Present";
+                } else {
+                    storeBundleStatusText = "StoreURL present, Bundle missing";
+                    summaryParts.push("StoreURL present (Valid).");
+                }
+            } else {
+                storeBundleValidationStatus = 'Invalid';
+                storeBundleStatusText = hasBundle ? "Bundle present, StoreURL missing" : "Both Missing";
+                summaryParts.push("Mobile Deal missing StoreURL.");
+            }
+        } else {
+            // Fallback for other deal types (Desktop?)
+            if (!hasStoreUrl && !hasBundle) {
+                storeBundleStatusText = "Both Missing";
+            } else if (hasStoreUrl && hasBundle) {
+                storeBundleStatusText = "Both Params Present";
+            } else {
+                storeBundleStatusText = hasStoreUrl ? "StoreURL present, Bundle missing" : "Bundle present, StoreURL missing";
+            }
+        }
     } else {
-        storeBundleStatusText = "Bundle present, StoreURL missing";
+        // No record match logic (keeps existing behavior if needed, or simplified)
+        if (hasStoreUrl && !hasBundle) {
+            storeBundleStatusText = "StoreURL present, Bundle missing";
+        } else if (hasStoreUrl && hasBundle) {
+            storeBundleStatusText = "Both Params Present";
+        } else if (!hasStoreUrl && !hasBundle) {
+            storeBundleStatusText = "Both Missing";
+        } else {
+            storeBundleStatusText = "Bundle present, StoreURL missing";
+        }
     }
 
     // Check 4: Duration (vmaxl)
@@ -197,7 +252,7 @@ export const validateAdTag = (tag: AdTag, plan: ParsedMediaPlan): ValidationResu
 
     // Final Summary
     let finalStatus = "PASS";
-    if (tagNameMatchStatus === 'Mismatch' || deviceTypeStatus === 'Invalid' || durationStatus === 'Invalid') {
+    if (tagNameMatchStatus === 'Mismatch' || deviceTypeStatus === 'Invalid' || durationStatus === 'Invalid' || storeBundleValidationStatus === 'Invalid') {
         finalStatus = "FAIL";
     } else if (filenameCheckStatus === 'Warning' || durationStatus === 'Warning') {
         finalStatus = "WARN";
