@@ -46,6 +46,7 @@ export const ValidationTable: React.FC<ValidationTableProps> = ({ results }) => 
                             <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tag Name (TXT)</th>
                             <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Device Target</th>
                             <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Device Type (VAST)</th>
+                            <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Duration</th>
                             <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Store/Bundle</th>
                             <th scope="col" className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Summary</th>
                         </tr>
@@ -87,6 +88,13 @@ export const ValidationTable: React.FC<ValidationTableProps> = ({ results }) => 
                                         <span className="text-sm text-gray-900">{row.deviceTypeParam}</span>
                                         <span className="text-xs text-gray-500 mt-1">
                                             <StatusBadge status={row.deviceTypeStatus} />
+                                        </span>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="flex flex-col">
+                                        <span className="text-xs text-gray-500 mt-1">
+                                            <StatusBadge status={row.durationStatus} />
                                         </span>
                                     </div>
                                 </td>
