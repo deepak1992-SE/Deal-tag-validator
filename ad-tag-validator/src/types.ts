@@ -6,10 +6,9 @@ export interface MediaPlanRecord {
 }
 
 export interface AdTag {
-    url: string;
-    parameters: Record<string, string>;
-    lineNumber: number;
-    originalString: string;
+    filename: string;
+    tagName: string;
+    vastUrl: string;
 }
 
 export type ValidationStatus = 'Valid' | 'Invalid' | 'Warning' | 'Info' | 'N/A';
