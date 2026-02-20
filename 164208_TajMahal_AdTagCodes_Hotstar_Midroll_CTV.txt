@@ -1,0 +1,6 @@
+TajMahal_F25_MUM_010126_611204_IOS
+
+https://vid.pubmatic.com/AdServer/AdServerServlet?adtype=13&pubId=164208&siteId=1174083&adId=7377995&vadFmt=3&vminl=1&vmaxl=21&vh=PLAYER_HEIGHT&vw=PLAYER_WIDTH&placement=1&plcmt=1&vtype=1&vpos=2&vplay=1+2&vskip=0&vcom=0&vfmt=1&sec=1&storeurl=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Din.startv.hotstar&udidtype=1&udidhash=1&devicetype=3&bundle=in.startv.hotstar&udid=[REPLACE_MACRO_ACCORDINGLY]&ifty=[REPLACE_DEVICE_ID_TYPE_MACRO_ACCORDINGLY]&vapi=7&lmt=[REPLACE_VALUE_ACCORDINGLY]
+
+----------------------------------------------------------------------------------------------------------------
+

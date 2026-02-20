@@ -7,32 +7,18 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Node
-node_modules/
-ad-tag-validator/node_modules/
-
-# Build output
+node_modules
 dist
-dist-sr
+dist-ssr
 *.local
-ad-tag-validator/dist/
 
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
 .idea
+.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# macOS
-.DS_Store
-~$*
-
-# Auto-generated test files
-test_files/
-
-# Temp / lock files
-*.tmp

@@ -1,0 +1,156 @@
+Publisher ID and name: 
+
+MX Player (tag-based pub ID 158872) 
+
+SonyLiv (tag-based pub ID 156549) 
+
+Voot (Jio Cinema) (tag-based pub ID 156182)  
+
+Zee5 (tag-based pub ID 158354) 
+
+
+Zee News: 158141 
+
+Times Internet/TOI/ET/ Times of India: 23105 
+
+Network 18 Media/ News 18 (113941) 
+
+Navbharat  23105 
+
+Jagran (156015) 
+
+TV9 (161755) 
+
+HT Media/ Hindustan Times (156370) 
+
+NDTV (158451) 
+
+DivyaBhaskar (ID: 69363) 
+
+MXP OW - 159800 
+
+Voot OW – 156182   
+
+Amar Ujala- 158914 
+
+Jio Ads and JIO TV - 161584 
+
+
+Samsung – 161729 
+
+HotStar - 164208 
+
+
+=====================
+List of Macros  - 
+
+ 
+
+
+ 
+
+MX player CTV : 
+
+&sec=1&storeurl=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.mxtech.videoplayer.television%26hl%3Den%26gl%3DUS&udid=%%ADVERTISING_IDENTIFIER_PLAIN%%&udidtype=1&udidhash=1&devicetype=3&bundle=com.mxtech.videoplayer.television&ifty=%%ADVERTISING_IDENTIFIER_TYPE%%&lmt=%%ADVERTISING_IDENTIFIER_IS_LAT%% 
+
+ 
+
+  
+
+Zee5  CTV :  
+
+&sec=1&storeurl=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.graymatrix.did&udid=%%ADVERTISING_IDENTIFIER_PLAIN%%&udidtype=1&udidhash=1&devicetype=3&bundle=com.graymatrix.did&ifty=%%ADVERTISING_IDENTIFIER_TYPE%%&lmt=%%ADVERTISING_IDENTIFIER_IS_LAT%% 
+
+ 
+
+ 
+
+Sonyliv:CTV                                                                             &sec=1&storeurl=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.sonyliv&udid=%%ADVERTISING_IDENTIFIER_PLAIN%%&udidtype=1&udidhash=1&devicetype=3&bundle=com.sonyliv&ifty=%%ADVERTISING_IDENTIFIER_TYPE%%&lmt=%%ADVERTISING_IDENTIFIER_IS_LAT%% 
+
+ 
+
+ 
+
+ 
+
+Jio Ads CTV – STB 
+ 
+
+&sec=1&storeurl=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.jio.jioplay.tv&udid=%%ADVERTISING_IDENTIFIER_PLAIN%%&udidtype=1&udidhash=1&devicetype=3&bundle=ENTER_YOUR_ADSERVER_MACRO_HERE_TO_PASS_BUNDLE_ID_DYNAMICALLY&ifty=[REPLACE_DEVICE_ID_TYPE_MACRO_ACCORDINGLY]&lmt=[REPLACE_VALUE_ACCORDINGLY] 
+
+ 
+
+Hotstar CTV 
+ 
+
+&sec=1&storeurl=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Din.startv.hotstar&udidtype=1&udidhash=1&devicetype=3&bundle=in.startv.hotstar&udid=[REPLACE_MACRO_ACCORDINGLY]&ifty=[REPLACE_DEVICE_ID_TYPE_MACRO_ACCORDINGLY]&vapi=7&lmt=[REPLACE_VALUE_ACCORDINGLY] 
+
+ 
+
+ 
+
+ 
+
+Zeenews CTV 
+
+ 
+
+&sec=1&storeurl=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.zeenews.tv&udidtype=1&udidhash=1&devicetype=3&bundle=com.zeenews.tv&udid=%%ADVERTISING_IDENTIFIER_PLAIN%%&ifty=%%ADVERTISING_IDENTIFIER_TYPE%%&lmt=%%ADVERTISING_IDENTIFIER_IS_LAT%% 
+
+ 
+
+ 
+
+WION CTV 
+
+ 
+
+&sec=1&storeurl=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.wion.tv&udidtype=1&udidhash=1&devicetype=3&bundle=com.wion.tv&udid=%%ADVERTISING_IDENTIFIER_PLAIN%%&ifty= %%ADVERTISING_IDENTIFIER_TYPE%%&lmt=%%ADVERTISING_IDENTIFIER_IS_LAT%%
+
+
+NDTV AOS: &gdpr=0&storeurl=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.july.ndtv%26hl%3Den_IN%26gl%3DUS&udid=%%ADVERTISING_IDENTIFIER_PLAIN%%&udidtype=9&udidhash=1&lmt=%%ADVERTISING_IDENTIFIER_IS_LAT%% 
+ 
+
+Hotstar iOS: 
+&gdpr=0&storeurl=https%3A%2F%2Fapps.apple.com%2Fin%2Fapp%2Fjiohotstar%2Fid934459219&udidtype=1&udidhash=1&udid=[content.customparameters.aaid]&lmt=[REPLACE_VALUE_ACCORDINGLY]&bundle=934459219 
+
+ 
+
+Hotstar Android: 
+			&gdpr=0&storeurl=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Din.startv.hotstar%26hl%3Den_IN&udidtype=9&udidhash=1&udid=[content.customparameters.aaid]&lmt=[REPLACE_VALUE_ACCORDINGLY]&bundle=in.startv.hotstar 
+
+ 
+
+Jio Ads Android: 
+
+&gdpr=0&storeurl=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.jio.jioplay.tv&udid=%%ADVERTISING_IDENTIFIER_PLAIN%%&udidtype=9&udidhash=1&lmt=[REPLACE_VALUE_ACCORDINGLY]&bundle=com.jio.jioplay.tv&udid 
+
+ 
+
+Zeenews AOS: &gdpr=0&storeurl=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.zeenews.hindinews%26hl%3Den_IN&udid=%%ADVERTISING_IDENTIFIER_PLAIN%%&udidtype=9&udidhash=1&lmt=%%ADVERTISING_IDENTIFIER_IS_LAT%%&bundle=com.zeenews.hindinews
+
+
+ 
+
+ 
+
+Sonyliv AOS: &gdpr=0&storeurl=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.sonyliv%26hl%3Den&udid=%%ADVERTISING_IDENTIFIER_PLAIN%%&udidtype=9&udidhash=1&lmt=%%ADVERTISING_IDENTIFIER_IS_LAT%%&bundle=com.sonyliv 
+ 
+Sonyliv iOS: &gdpr=0&storeurl=https%3A%2F%2Fapps.apple.com%2Fin%2Fapp%2Fsonyliv-originals-hollywood%2Fid587794258&udid=%%ADVERTISING_IDENTIFIER_PLAIN%%&udidtype=1&udidhash=1&lmt=%%ADVERTISING_IDENTIFIER_IS_LAT%%&bundle=587794258 
+
+ 
+
+ 
+
+MX Player AOS: &gdpr=0&storeurl=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.mxtech.videoplayer.ad&udid=%%ADVERTISING_IDENTIFIER_PLAIN%%&udidtype=9&udidhash=1&lmt=%%ADVERTISING_IDENTIFIER_IS_LAT%%&bundle=com.mxtech.videoplayer.ad 
+ 
+
+MX Player iOS: &gdpr=0&storeurl=https%3A%2F%2Fapps.apple.com%2Fin%2Fapp%2Fmxplayer%2Fid1429703801&udid=%%ADVERTISING_IDENTIFIER_PLAIN%%&udidtype=1&udidhash=1&lmt=%%ADVERTISING_IDENTIFIER_IS_LAT%%&bundle=1429703801 
+
+ 
+
+Zee5 AOS: &gdpr=0&storeurl=https%3A%2F%2Fplay.google.com%2Fstore%2Fapps%2Fdetails%3Fid%3Dcom.graymatrix.did%26hl%3Den_IN&udid=%%ADVERTISING_IDENTIFIER_PLAIN%%&udidtype=9&udidhash=1&lmt=%%ADVERTISING_IDENTIFIER_IS_LAT%%&bundle=com.graymatrix.did 
+
+ 
+
+Zee5 iOS: &gdpr=0&storeurl=https%3A%2F%2Fapps.apple.com%2Fin%2Fapp%2Fzee5-shows-live-tv-movies%2Fid743691886&udid=%%ADVERTISING_IDENTIFIER_PLAIN%%&udidtype=1&udidhash=1&lmt=%%ADVERTISING_IDENTIFIER_IS_LAT%%&bundle=743691886 

@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+@theme {
+    /* Brand Colors */
+    --color-brand-navy: #003B5C;
+    --color-brand-blue: #2581AE;
+    --color-brand-light: #E8F4FA;
+
+    /* Background Colors */
+    --color-bg-main: #F0F2F5;
+    --color-bg-paper: #FFFFFF;
+
+    /* Status Colors */
+    --color-status-pass-bg: #ECFDF5;
+    --color-status-pass-text: #059669;
+
+    --color-status-fail-bg: #FEF2F2;
+    --color-status-fail-text: #DC2626;
+
+    --color-status-warn-bg: #FFFBEB;
+    --color-status-warn-text: #D97706;
+
+    /* Fonts */
+    --font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+}
+
+/* Smooth scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+}
+
+/* Glass card effect */
+.glass-card {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Animated gradient background for header */
+.header-gradient {
+    background: linear-gradient(135deg, #003B5C 0%, #0A5A7C 50%, #2581AE 100%);
+}
+
+/* Subtle animated shimmer for processing states */
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+.shimmer {
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+}
+
+/* Progress bar animation */
+@keyframes progress-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Slide down for expandable rows */
+@keyframes slideDown {
+    from { opacity: 0; max-height: 0; }
+    to { opacity: 1; max-height: 500px; }
+}
+.animate-slide-down {
+    animation: slideDown 0.25s ease-out forwards;
+}
+
+/* Table sticky header */
+.sticky-header thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
