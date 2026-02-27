@@ -38,6 +38,15 @@ export interface ValidationResult {
     publisherId?: string;
     macroCheckStatus?: 'Pass' | 'Fail' | 'N/A';
     missingMacros?: string[];
+    macroValueMismatches?: string[]; // wrong bundle/storeurl values for publisher
+
+    // Issue 1: Platform detected from udidtype / devicetype vs tag name suffix
+    platformDetectedFromTag?: 'ctv' | 'aos' | 'ios';
+    platformMismatchStatus?: 'Match' | 'Mismatch' | 'N/A';
+
+    // Issue 3: adtype must be 13 for Video
+    adtypeStatus?: 'Pass' | 'Fail' | 'N/A';
+    adtypeValue?: string;
 
     summary: string;
     errors?: string[]; // Optional compatibility

@@ -17,6 +17,47 @@ interface MacroRequirements {
     ios?: string[];
 }
 
+/** Expected VALUES for key params per publisher + platform. */
+interface MacroValueRequirements {
+    bundleExpected?: string;      // exact bundle ID expected in the tag
+    storeurlMustContain?: string; // substring that must appear in storeurl
+}
+
+// Value requirements derived from PublisherID_macro reference file.
+const PUBLISHER_MACRO_VALUES: Record<string, { ctv?: MacroValueRequirements; aos?: MacroValueRequirements; ios?: MacroValueRequirements }> = {
+    '158872': { // MX Player
+        ctv: { bundleExpected: 'com.mxtech.videoplayer.television', storeurlMustContain: 'com.mxtech.videoplayer.television' },
+        aos: { bundleExpected: 'com.mxtech.videoplayer.ad',         storeurlMustContain: 'com.mxtech.videoplayer.ad' },
+        ios: { bundleExpected: '1429703801',                         storeurlMustContain: '1429703801' },
+    },
+    '156549': { // SonyLiv
+        ctv: { bundleExpected: 'com.sonyliv', storeurlMustContain: 'com.sonyliv' },
+        aos: { bundleExpected: 'com.sonyliv', storeurlMustContain: 'com.sonyliv' },
+        ios: { bundleExpected: '587794258',   storeurlMustContain: '587794258' },
+    },
+    '158354': { // Zee5
+        ctv: { bundleExpected: 'com.graymatrix.did', storeurlMustContain: 'com.graymatrix.did' },
+        aos: { bundleExpected: 'com.graymatrix.did', storeurlMustContain: 'com.graymatrix.did' },
+        ios: { bundleExpected: '743691886',           storeurlMustContain: '743691886' },
+    },
+    '158141': { // Zee News
+        ctv: { bundleExpected: 'com.zeenews.tv',       storeurlMustContain: 'com.zeenews.tv' },
+        aos: { bundleExpected: 'com.zeenews.hindinews', storeurlMustContain: 'com.zeenews.hindinews' },
+    },
+    '158451': { // NDTV
+        aos: { storeurlMustContain: 'com.july.ndtv' },
+    },
+    '161584': { // Jio Ads / JIO TV  (CTV bundle is an ad-server placeholder — skip bundle check)
+        ctv: { storeurlMustContain: 'com.jio.jioplay.tv' },
+        aos: { bundleExpected: 'com.jio.jioplay.tv', storeurlMustContain: 'com.jio.jioplay.tv' },
+    },
+    '164208': { // HotStar
+        ctv: { bundleExpected: 'in.startv.hotstar', storeurlMustContain: 'in.startv.hotstar' },
+        aos: { bundleExpected: 'in.startv.hotstar', storeurlMustContain: 'in.startv.hotstar' },
+        ios: { bundleExpected: '934459219',          storeurlMustContain: '934459219' },
+    },
+};
+
 // Macro requirements per publisher ID, derived from the PublisherID_macro reference file.
 // Each array lists the URL parameter keys that must be present in the VAST tag.
 const PUBLISHER_MACROS: Record<string, MacroRequirements> = {
@@ -104,21 +145,46 @@ export function getRequiredMacros(pubId: string, platform: 'ctv' | 'aos' | 'ios'
     return req[platform] ?? null;
 }
 
+/** Extracts the value of a URL parameter (handles both `key=val` and first `&key=val`). */
+function extractParam(lowerUrl: string, key: string): string | null {
+    const match = lowerUrl.match(new RegExp(`[?&]${key}=([^&\\s]+)`));
+    return match ? match[1] : null;
+}
+
 /**
  * Checks a VAST tag URL against the required macros for a publisher + platform.
- * Returns { pass: boolean, missing: string[] }
+ * Returns { status, missing (keys), valueMismatches (wrong values) }
  */
 export function checkMacros(vastUrl: string, pubId: string, platform: 'ctv' | 'aos' | 'ios'): {
     status: 'Pass' | 'Fail' | 'N/A';
     missing: string[];
+    valueMismatches: string[];
 } {
     const required = getRequiredMacros(pubId, platform);
-    if (!required) return { status: 'N/A', missing: [] };
+    if (!required) return { status: 'N/A', missing: [], valueMismatches: [] };
 
     const lowerUrl = vastUrl.toLowerCase();
     const missing = required.filter(key => !lowerUrl.includes(`${key}=`));
+
+    // Value validation: bundle and storeurl per publisher
+    const valueMismatches: string[] = [];
+    const valueReqs = PUBLISHER_MACRO_VALUES[pubId]?.[platform];
+    if (valueReqs) {
+        if (valueReqs.bundleExpected) {
+            const foundBundle = extractParam(lowerUrl, 'bundle');
+            if (foundBundle && foundBundle !== valueReqs.bundleExpected.toLowerCase()) {
+                valueMismatches.push(`bundle: expected "${valueReqs.bundleExpected}", found "${foundBundle}"`);
+            }
+        }
+        if (valueReqs.storeurlMustContain && !lowerUrl.includes(valueReqs.storeurlMustContain.toLowerCase())) {
+            valueMismatches.push(`storeurl: should contain "${valueReqs.storeurlMustContain}"`);
+        }
+    }
+
+    const hasFail = missing.length > 0 || valueMismatches.length > 0;
     return {
-        status: missing.length === 0 ? 'Pass' : 'Fail',
+        status: hasFail ? 'Fail' : 'Pass',
         missing,
+        valueMismatches,
     };
 }

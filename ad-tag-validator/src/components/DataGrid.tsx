@@ -91,6 +91,19 @@ function buildCheckRows(result: ValidationResult, platform: Platform): CheckRow[
         result: result.tagNameMatchStatus === 'Match' ? 'pass' : 'fail',
     });
 
+    // 2b. Issue 1: Platform detected from udidtype vs tag name
+    if (result.platformMismatchStatus && result.platformMismatchStatus !== 'N/A') {
+        const detectedLabel = result.platformDetectedFromTag === 'ctv' ? 'CTV (devicetype=3)'
+            : result.platformDetectedFromTag === 'aos' ? 'AOS (udidtype=9)'
+            : 'iOS (udidtype=1)';
+        rows.push({
+            check: 'Platform (udidtype)',
+            found: result.platformDetectedFromTag ? `Detected: ${detectedLabel}` : 'Not detectable',
+            expected: `Must match tag name suffix (_${platform.toUpperCase()})`,
+            result: result.platformMismatchStatus === 'Match' ? 'pass' : 'fail',
+        });
+    }
+
     // 3. Unique Tag Name
     rows.push({
         check: 'Unique Tag Name',
@@ -164,18 +177,21 @@ function buildCheckRows(result: ValidationResult, platform: Platform): CheckRow[
         });
     }
 
-    // 9. Publisher Macros
+    // 9. Publisher Macros (keys + values)
     {
+        const parts: string[] = [];
+        if (result.missingMacros?.length) parts.push(`Missing keys: ${result.missingMacros.join(', ')}`);
+        if (result.macroValueMismatches?.length) parts.push(`Wrong values: ${result.macroValueMismatches.join(' | ')}`);
         const macroFound =
             result.macroCheckStatus === 'Pass'
-                ? 'All required macros present'
+                ? 'All required macros present & correct'
                 : result.macroCheckStatus === 'Fail'
-                    ? `Missing: ${result.missingMacros?.join(', ')}`
+                    ? parts.join(' — ')
                     : result.publisherId
                         ? 'No requirements defined for this publisher'
                         : 'pubId not found in tag URL';
         const macroExpected = result.publisherId
-            ? `Required params for pubId ${result.publisherId}`
+            ? `Correct params & values for pubId ${result.publisherId}`
             : 'pubId param must be present in VAST URL';
         rows.push({
             check: 'Publisher Macros',
@@ -184,6 +200,16 @@ function buildCheckRows(result: ValidationResult, platform: Platform): CheckRow[
             result: result.macroCheckStatus === 'Pass' ? 'pass'
                 : result.macroCheckStatus === 'Fail' ? 'fail'
                 : 'na',
+        });
+    }
+
+    // 10. Issue 3: adtype must be 13 for Video
+    if (result.adtypeStatus && result.adtypeStatus !== 'N/A') {
+        rows.push({
+            check: 'Ad Type (adtype)',
+            found: result.adtypeValue ? `adtype=${result.adtypeValue}` : 'adtype not present',
+            expected: 'adtype=13 (Video)',
+            result: result.adtypeStatus === 'Pass' ? 'pass' : 'fail',
         });
     }
 

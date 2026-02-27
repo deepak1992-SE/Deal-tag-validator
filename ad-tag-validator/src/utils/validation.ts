@@ -7,6 +7,19 @@ import { checkMacros } from './macroData';
 const normalize = (s: string) => s.trim();
 
 /**
+ * Detects the actual platform from VAST URL parameters.
+ * CTV → devicetype=3; AOS → udidtype=9; iOS → udidtype=1 (no devicetype=3).
+ */
+const detectPlatformFromUrl = (url: string): 'ctv' | 'aos' | 'ios' | null => {
+    const lower = url.toLowerCase();
+    if (lower.includes('devicetype=3') || lower.includes('devicetype%3d3')) return 'ctv';
+    const udidMatch = lower.match(/udidtype=(\d+)/);
+    if (udidMatch?.[1] === '9') return 'aos';
+    if (udidMatch?.[1] === '1') return 'ios';
+    return null;
+};
+
+/**
  * Tries to find a matching deal in the Media Plan.
  */
 const findDealMatch = (tagName: string, plan: ParsedMediaPlan): { dealName: string, record: MediaPlanRecord | undefined } => {
@@ -58,6 +71,8 @@ export const validateAdTag = (tag: AdTag, plan: ParsedMediaPlan): ValidationResu
     let deviceTypeStatus: ValidationStatus = 'Valid';
     let storeBundleValidationStatus: ValidationStatus = 'Valid';
     let filenameCheckStatus: 'Valid' | 'Warning' | 'N/A' = 'N/A';
+    let platformDetectedFromTag: 'ctv' | 'aos' | 'ios' | undefined;
+    let platformMismatchStatus: 'Match' | 'Mismatch' | 'N/A' = 'N/A';
     let summaryParts: string[] = [];
 
     // Check VAST Params early to use in Logic
@@ -76,11 +91,30 @@ export const validateAdTag = (tag: AdTag, plan: ParsedMediaPlan): ValidationResu
         const tagUpper = tagName.toUpperCase();
         const filenameUpper = filename.toUpperCase();
 
-        // Tag Name Suffix Check
-        if (isCTV) {
-            if (tagUpper.includes('_AOS') || tagUpper.includes('_IOS')) {
+        // Tag Name Suffix Check (vs Media Plan device target)
+        if (isCTV && (tagUpper.includes('_AOS') || tagUpper.includes('_IOS'))) {
+            tagNameMatchStatus = 'Mismatch';
+            summaryParts.push("CTV Deal has Mobile suffix in Tag Name.");
+        }
+
+        // Issue 1: Platform mismatch — detect actual platform from udidtype/devicetype in the VAST URL
+        // udidtype=1 → iOS, udidtype=9 → AOS, devicetype=3 → CTV
+        const detectedPlatform = detectPlatformFromUrl(vastUrl);
+        if (detectedPlatform) {
+            platformDetectedFromTag = detectedPlatform;
+            const nameSuffix = tagUpper.endsWith('_IOS') ? 'ios'
+                : tagUpper.endsWith('_AOS') ? 'aos'
+                : tagUpper.endsWith('_CTV') ? 'ctv'
+                : null;
+            if (nameSuffix && nameSuffix !== detectedPlatform) {
+                platformMismatchStatus = 'Mismatch';
+                const detectedLabel = detectedPlatform === 'ctv' ? 'CTV (devicetype=3)'
+                    : detectedPlatform === 'aos' ? 'AOS (udidtype=9)'
+                    : 'iOS (udidtype=1)';
+                summaryParts.push(`Platform mismatch: tag name says _${nameSuffix.toUpperCase()} but VAST tag has ${detectedLabel}.`);
                 tagNameMatchStatus = 'Mismatch';
-                summaryParts.push("CTV Deal has Mobile suffix in Tag Name.");
+            } else if (nameSuffix) {
+                platformMismatchStatus = 'Match';
             }
         }
 
@@ -249,6 +283,7 @@ export const validateAdTag = (tag: AdTag, plan: ParsedMediaPlan): ValidationResu
     // Check 5: Publisher ID Macro Verification (Rule 4)
     let macroCheckStatus: 'Pass' | 'Fail' | 'N/A' = 'N/A';
     let missingMacros: string[] = [];
+    let macroValueMismatches: string[] = [];
     let publisherId: string | undefined;
 
     // Extract pubId from VAST URL (try common param name variations)
@@ -273,8 +308,12 @@ export const validateAdTag = (tag: AdTag, plan: ParsedMediaPlan): ValidationResu
         const macroResult = checkMacros(vastUrl, publisherId, macroPlatform);
         macroCheckStatus = macroResult.status;
         missingMacros = macroResult.missing;
+        macroValueMismatches = macroResult.valueMismatches;
         if (macroCheckStatus === 'Fail') {
-            summaryParts.push(`Publisher ${publisherId} macro check failed — missing: ${missingMacros.join(', ')}.`);
+            if (missingMacros.length > 0)
+                summaryParts.push(`Publisher ${publisherId} macro check failed — missing params: ${missingMacros.join(', ')}.`);
+            if (macroValueMismatches.length > 0)
+                summaryParts.push(`Publisher ${publisherId} macro value mismatch — ${macroValueMismatches.join('; ')}.`);
         }
     }
 
@@ -282,12 +321,10 @@ export const validateAdTag = (tag: AdTag, plan: ParsedMediaPlan): ValidationResu
     let durationStatus: ValidationStatus = 'N/A';
     if (record && record.adDuration) {
         const lowerUrl = vastUrl.toLowerCase();
-        // Extract vmaxl value: match vmaxl=123 or vmaxl%3d123
         const match = lowerUrl.match(/vmaxl(?:=|%3d)(\d+)/);
         if (match) {
             const vmaxlValue = parseInt(match[1], 10);
             const expectedVmaxl = record.adDuration + 1;
-
             if (vmaxlValue === expectedVmaxl) {
                 durationStatus = 'Valid';
             } else {
@@ -300,6 +337,20 @@ export const validateAdTag = (tag: AdTag, plan: ParsedMediaPlan): ValidationResu
         }
     }
 
+    // Check 7: Issue 3 — adtype must be 13 for Video
+    let adtypeStatus: 'Pass' | 'Fail' | 'N/A' = 'N/A';
+    let adtypeValue: string | undefined;
+    const adtypeMatch = vastUrl.toLowerCase().match(/[?&]adtype=(\d+)/);
+    if (adtypeMatch) {
+        adtypeValue = adtypeMatch[1];
+        if (adtypeValue === '13') {
+            adtypeStatus = 'Pass';
+        } else {
+            adtypeStatus = 'Fail';
+            summaryParts.push(`Ad Type mismatch: adtype should be 13 (Video) but found adtype=${adtypeValue}.`);
+        }
+    }
+
     // Final Summary
     let finalStatus = "PASS";
     if (
@@ -308,7 +359,8 @@ export const validateAdTag = (tag: AdTag, plan: ParsedMediaPlan): ValidationResu
         durationStatus === 'Invalid' ||
         storeBundleValidationStatus === 'Invalid' ||
         formatCheckStatus === 'Fail' ||
-        macroCheckStatus === 'Fail'
+        macroCheckStatus === 'Fail' ||
+        adtypeStatus === 'Fail'
     ) {
         finalStatus = "FAIL";
     } else if (filenameCheckStatus === 'Warning' || durationStatus === 'Warning') {
@@ -335,6 +387,11 @@ export const validateAdTag = (tag: AdTag, plan: ParsedMediaPlan): ValidationResu
         publisherId,
         macroCheckStatus,
         missingMacros,
+        macroValueMismatches,
+        platformDetectedFromTag,
+        platformMismatchStatus,
+        adtypeStatus,
+        adtypeValue,
         summary
     };
 };
