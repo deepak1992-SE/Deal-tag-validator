@@ -5,3 +5,10 @@
 
 [build.environment]
   NODE_VERSION = "20"
+
+# Proxy PubMatic API to avoid CORS in production (mirrors Vite dev proxy)
+[[redirects]]
+  from   = "/api/pubmatic/*"
+  to     = "https://api.pubmatic.com/:splat"
+  status = 200
+  force  = true

@@ -1,7 +1,9 @@
 import type { DealValidationResult } from '../types';
 
-// Configuration — use Vite proxy in dev to avoid CORS
-const API_BASE_URL = import.meta.env.DEV ? "/api/pubmatic" : "https://api.pubmatic.com";
+// Always route through /api/pubmatic:
+//   Dev  → Vite proxy rewrites to https://api.pubmatic.com (vite.config.ts)
+//   Prod → Netlify redirect rewrites to https://api.pubmatic.com (netlify.toml)
+const API_BASE_URL = "/api/pubmatic";
 const API_ENDPOINT = "/v3/pmp/deals/";
 
 // Owner constants used across all 3 PubMatic APIs
