@@ -1,46 +1,62 @@
 import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
-import { fetchDealDetails, validateDeal } from '../utils/dealValidation';
+import { fetchDealByName, fetchProductDetails, extractProductId, extractInventoryInfo, validateDeal } from '../utils/dealValidation';
 import type { DealValidationResult } from '../types';
-import { Upload, FileText, Play, Download, AlertCircle, CheckCircle, XCircle, Shield, Loader2, SkipForward, ChevronDown, ChevronRight } from 'lucide-react';
+import { Upload, FileText, Play, Download, AlertCircle, CheckCircle, XCircle, Shield, Loader2, SkipForward, ChevronDown, ChevronRight, AlertTriangle } from 'lucide-react';
 
-// Build comparison rows for a deal result
+// ─── Row type includes WARN for Deal Status ───────────────────────────────────
+type RowResult = 'PASS' | 'FAIL' | 'WARN' | 'N/A';
+
 const getComparisonRows = (res: DealValidationResult) => {
-    const rows: Array<{ param: string; excel: string; api: string; caseInsensitive?: boolean }> = [
-        { param: 'Start Date', excel: res.startDateExcel || '-', api: res.startDateApi || '-' },
-        { param: 'End Date', excel: res.endDateExcel || '-', api: res.endDateApi || '-' },
-        { param: 'CPM', excel: res.cpmExcel || '-', api: res.cpmApi || '-' },
-        { param: 'Budget', excel: res.budgetExcel || '-', api: res.budgetApi || '-' },
-        { param: 'Impressions', excel: res.impressionExcel || '-', api: res.impressionApi || '-' },
-        { param: 'Buyer Seat ID', excel: res.buyerSeatIdExcel || '-', api: res.buyerSeatIdApi || '-' },
-        { param: 'DSP', excel: res.dspExcel || '-', api: res.dspApi || '-', caseInsensitive: true },
-        { param: 'Deal Type', excel: res.dealTypeExcel || '-', api: res.dealTypeApi || '-', caseInsensitive: true },
-        { param: 'Deal Status', excel: '-', api: res.dealStatusApi || '-' },
-        { param: 'Frequency Cap', excel: res.freqCapExcel || '-', api: res.freqCapApi || '-' },
+    const rows: Array<{ param: string; yourSheet: string; api: string; caseInsensitive?: boolean; isDate?: boolean; isStatus?: boolean }> = [
+        { param: 'Start Date', yourSheet: res.startDateExcel || '-', api: res.startDateApi || '-', isDate: true },
+        { param: 'End Date',   yourSheet: res.endDateExcel   || '-', api: res.endDateApi   || '-', isDate: true },
+        { param: 'CPM',        yourSheet: res.cpmExcel        || '-', api: res.cpmApi        || '-' },
+        { param: 'Budget',     yourSheet: res.budgetExcel     || '-', api: res.budgetApi     || '-' },
+        { param: 'Impressions',yourSheet: res.impressionExcel || '-', api: res.impressionApi || '-' },
+        { param: 'Buyer Seat ID', yourSheet: res.buyerSeatIdExcel || '-', api: res.buyerSeatIdApi || '-' },
+        { param: 'DSP',        yourSheet: res.dspExcel        || '-', api: res.dspApi        || '-', caseInsensitive: true },
+        { param: 'Deal Type',  yourSheet: res.dealTypeExcel   || '-', api: res.dealTypeApi   || '-', caseInsensitive: true },
+        { param: 'Deal Status',yourSheet: '-',                         api: res.dealStatusApi || '-', isStatus: true },
+        { param: 'Frequency Cap', yourSheet: res.freqCapExcel || '-', api: res.freqCapApi   || '-' },
     ];
     return rows;
 };
 
-const getRowResult = (excel: string, api: string, param: string, caseInsensitive?: boolean): 'PASS' | 'FAIL' | 'N/A' => {
-    if (excel === '-' && api === '-') return 'N/A';
-    if (param === 'Deal Status') {
+const getRowResult = (
+    yourSheet: string,
+    api: string,
+    _param?: string,
+    caseInsensitive?: boolean,
+    isStatus?: boolean
+): RowResult => {
+    if (yourSheet === '-' && api === '-') return 'N/A';
+    // Deal Status is informational — WARN if not Active, never FAIL
+    if (isStatus) {
         if (api === '-') return 'N/A';
-        return api.toLowerCase() === 'active' ? 'PASS' : 'FAIL';
+        return api.toLowerCase() === 'active' ? 'PASS' : 'WARN';
     }
-    if (excel === '-' || api === '-') return 'N/A';
+    if (yourSheet === '-' || api === '-') return 'N/A';
     if (caseInsensitive) {
-        return excel.toLowerCase() === api.toLowerCase() ? 'PASS' : 'FAIL';
+        return yourSheet.toLowerCase() === api.toLowerCase() ? 'PASS' : 'FAIL';
     }
-    return excel === api ? 'PASS' : 'FAIL';
+    return yourSheet === api ? 'PASS' : 'FAIL';
 };
 
-// Status badge component
+// Count real mismatches (excluding N/A and WARN rows)
+const getMismatchCount = (res: DealValidationResult): number => {
+    return getComparisonRows(res).filter(row =>
+        getRowResult(row.yourSheet, row.api, undefined, row.caseInsensitive, row.isStatus) === 'FAIL'
+    ).length;
+};
+
+// ─── Status badge ─────────────────────────────────────────────────────────────
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     const config: Record<string, { icon: React.ReactNode; classes: string }> = {
-        PASS: { icon: <CheckCircle className="w-3.5 h-3.5" />, classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-        FAIL: { icon: <XCircle className="w-3.5 h-3.5" />, classes: 'bg-red-50 text-red-700 border-red-200' },
-        ERROR: { icon: <AlertCircle className="w-3.5 h-3.5" />, classes: 'bg-gray-50 text-gray-600 border-gray-200' },
-        SKIPPED: { icon: <SkipForward className="w-3.5 h-3.5" />, classes: 'bg-amber-50 text-amber-700 border-amber-200' },
+        PASS:    { icon: <CheckCircle className="w-3.5 h-3.5" />,    classes: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+        FAIL:    { icon: <XCircle className="w-3.5 h-3.5" />,        classes: 'bg-red-50 text-red-700 border-red-200' },
+        ERROR:   { icon: <AlertCircle className="w-3.5 h-3.5" />,    classes: 'bg-gray-50 text-gray-600 border-gray-200' },
+        SKIPPED: { icon: <SkipForward className="w-3.5 h-3.5" />,    classes: 'bg-amber-50 text-amber-700 border-amber-200' },
     };
     const c = config[status] || config.ERROR;
     return (
@@ -50,25 +66,31 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     );
 };
 
-// Single deal card with comparison table
+// ─── Single deal card ─────────────────────────────────────────────────────────
 const DealCard: React.FC<{ res: DealValidationResult; defaultExpanded: boolean }> = ({ res, defaultExpanded }) => {
     const [expanded, setExpanded] = useState(defaultExpanded);
-    const rows = getComparisonRows(res);
+
+    const allRows = getComparisonRows(res);
+    const mismatchCount = getMismatchCount(res);
+    const visibleRows = allRows.filter(row =>
+        getRowResult(row.yourSheet, row.api, undefined, row.caseInsensitive, row.isStatus) !== 'N/A'
+    );
+
     const isSkipOrError = res.status === 'SKIPPED' || res.status === 'ERROR';
 
     return (
         <div className={`bg-white rounded-xl border shadow-sm overflow-hidden transition-all duration-200 ${
-            res.status === 'PASS' ? 'border-emerald-200/80' :
-            res.status === 'FAIL' ? 'border-red-200/80' :
-            res.status === 'ERROR' ? 'border-gray-200' :
+            res.status === 'PASS'    ? 'border-emerald-200/80' :
+            res.status === 'FAIL'   ? 'border-red-200/80' :
+            res.status === 'ERROR'  ? 'border-gray-200' :
             'border-amber-200/80'
         }`}>
-            {/* Card Header — always visible */}
+            {/* Card Header */}
             <div
                 className={`flex items-center justify-between px-5 py-3.5 cursor-pointer transition-colors ${
-                    res.status === 'PASS' ? 'bg-emerald-50/40 hover:bg-emerald-50/70' :
-                    res.status === 'FAIL' ? 'bg-red-50/40 hover:bg-red-50/70' :
-                    res.status === 'ERROR' ? 'bg-gray-50/40 hover:bg-gray-50/70' :
+                    res.status === 'PASS'   ? 'bg-emerald-50/40 hover:bg-emerald-50/70' :
+                    res.status === 'FAIL'   ? 'bg-red-50/40 hover:bg-red-50/70' :
+                    res.status === 'ERROR'  ? 'bg-gray-50/40 hover:bg-gray-50/70' :
                     'bg-amber-50/40 hover:bg-amber-50/70'
                 }`}
                 onClick={() => setExpanded(!expanded)}
@@ -76,9 +98,39 @@ const DealCard: React.FC<{ res: DealValidationResult; defaultExpanded: boolean }
                 <div className="flex items-center gap-4">
                     <StatusBadge status={res.status} />
                     <div>
-                        <p className="text-sm font-semibold text-gray-900">{res.dealId}</p>
-                        {res.pubMaticDealId && (
-                            <p className="text-[11px] text-gray-400 font-mono mt-0.5">Meta ID: {res.pubMaticDealId}</p>
+                        <div className="flex items-center gap-2.5">
+                            <p className="text-sm font-semibold text-gray-900">{res.dealId}</p>
+                            {/* #1 — Mismatch count badge */}
+                            {mismatchCount > 0 && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-600 border border-red-200">
+                                    <XCircle className="w-2.5 h-2.5" />
+                                    {mismatchCount} mismatch{mismatchCount > 1 ? 'es' : ''}
+                                </span>
+                            )}
+                        </div>
+                        {/* Meta ID + Product ID (no auto-generated name) — #5 */}
+                        <div className="flex flex-wrap gap-x-4 mt-0.5">
+                            {res.pubMaticDealId && (
+                                <p className="text-[11px] text-gray-400 font-mono">Meta ID: {res.pubMaticDealId}</p>
+                            )}
+                            {res.productId && (
+                                <p className="text-[11px] text-gray-400 font-mono">Product ID: {res.productId}</p>
+                            )}
+                        </div>
+                        {/* Site + Tag */}
+                        {(res.siteId || res.tagId) && (
+                            <div className="flex flex-wrap gap-x-4 mt-0.5">
+                                {res.siteId && (
+                                    <p className="text-[11px] text-indigo-500 font-mono">
+                                        Site: {res.siteName ? `${res.siteName} (${res.siteId})` : res.siteId}
+                                    </p>
+                                )}
+                                {res.tagId && (
+                                    <p className="text-[11px] text-indigo-500 font-mono">
+                                        Tag: {res.tagName ? `${res.tagName} (${res.tagId})` : res.tagId}
+                                    </p>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>
@@ -94,28 +146,38 @@ const DealCard: React.FC<{ res: DealValidationResult; defaultExpanded: boolean }
                 </div>
             </div>
 
-            {/* Comparison Table — expandable */}
+            {/* Comparison Table + Additional Info */}
             {expanded && !isSkipOrError && (
                 <div className="animate-fade-in">
+                    {/* Comparison table */}
                     <table className="w-full">
                         <thead>
                             <tr className="bg-gray-50/80 border-t border-gray-100">
-                                <th className="px-5 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider w-[180px]">Parameter</th>
-                                <th className="px-5 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">Excel</th>
+                                <th className="px-5 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider w-[160px]">Parameter</th>
+                                <th className="px-5 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">Your Sheet</th>
                                 <th className="px-5 py-2.5 text-left text-[11px] font-bold text-gray-500 uppercase tracking-wider">API</th>
-                                <th className="px-5 py-2.5 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider w-[100px]">Result</th>
+                                <th className="px-5 py-2.5 text-center text-[11px] font-bold text-gray-500 uppercase tracking-wider w-[110px]">Result</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {rows.map((row, i) => {
-                                const result = getRowResult(row.excel, row.api, row.param, row.caseInsensitive);
+                            {visibleRows.map((row, i) => {
+                                const result = getRowResult(row.yourSheet, row.api, undefined, row.caseInsensitive, row.isStatus);
+                                const sheetDisplay = row.isDate && row.yourSheet !== '-'
+                                    ? <>{row.yourSheet} <span className="text-[10px] text-gray-400 font-sans">PST</span></>
+                                    : row.yourSheet;
+                                const apiDisplay = row.isDate && row.api !== '-'
+                                    ? <>{row.api} <span className="text-[10px] text-gray-400 font-sans">PST</span></>
+                                    : row.api;
+
                                 return (
                                     <tr key={i} className={`transition-colors ${
-                                        result === 'FAIL' ? 'bg-red-50/30' : 'hover:bg-gray-50/50'
+                                        result === 'FAIL' ? 'bg-red-50/30' :
+                                        result === 'WARN' ? 'bg-amber-50/20' :
+                                        'hover:bg-gray-50/50'
                                     }`}>
                                         <td className="px-5 py-2.5 text-xs font-semibold text-gray-600">{row.param}</td>
-                                        <td className="px-5 py-2.5 text-sm text-gray-900 font-mono">{row.excel}</td>
-                                        <td className="px-5 py-2.5 text-sm text-gray-900 font-mono">{row.api}</td>
+                                        <td className="px-5 py-2.5 text-sm text-gray-900 font-mono">{sheetDisplay}</td>
+                                        <td className="px-5 py-2.5 text-sm text-gray-900 font-mono">{apiDisplay}</td>
                                         <td className="px-5 py-2.5 text-center">
                                             {result === 'PASS' && (
                                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
@@ -127,6 +189,11 @@ const DealCard: React.FC<{ res: DealValidationResult; defaultExpanded: boolean }
                                                     <XCircle className="w-3 h-3" /> Mismatch
                                                 </span>
                                             )}
+                                            {result === 'WARN' && (
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200">
+                                                    <AlertTriangle className="w-3 h-3" /> Warning
+                                                </span>
+                                            )}
                                             {result === 'N/A' && (
                                                 <span className="text-[10px] text-gray-300 font-medium">-</span>
                                             )}
@@ -136,6 +203,66 @@ const DealCard: React.FC<{ res: DealValidationResult; defaultExpanded: boolean }
                             })}
                         </tbody>
                     </table>
+
+                    {/* Additional Info section */}
+                    {(res.buyerName || res.auctionType || res.priority || res.lastModified ||
+                      res.dealCategory || res.inventoryPlatform || res.adType || res.vastVersion) && (
+                        <div className="border-t border-gray-100 bg-blue-50/20 px-5 py-4">
+                            <p className="text-[11px] font-bold text-blue-500 uppercase tracking-wider mb-3">
+                                Additional Info — from API
+                            </p>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3">
+                                {res.buyerName && (
+                                    <div>
+                                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Buyer Name</p>
+                                        <p className="text-xs text-gray-800 font-medium mt-0.5">{res.buyerName}</p>
+                                    </div>
+                                )}
+                                {res.auctionType && (
+                                    <div>
+                                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Auction Type</p>
+                                        <p className="text-xs text-gray-800 font-medium mt-0.5">{res.auctionType}</p>
+                                    </div>
+                                )}
+                                {res.priority && (
+                                    <div>
+                                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Priority</p>
+                                        <p className="text-xs text-gray-800 font-medium mt-0.5">{res.priority}</p>
+                                    </div>
+                                )}
+                                {res.dealCategory && (
+                                    <div>
+                                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Deal Category</p>
+                                        <p className="text-xs text-gray-800 font-medium mt-0.5">{res.dealCategory}</p>
+                                    </div>
+                                )}
+                                {res.inventoryPlatform && (
+                                    <div>
+                                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Inventory Platform</p>
+                                        <p className="text-xs text-gray-800 font-medium mt-0.5">{res.inventoryPlatform}</p>
+                                    </div>
+                                )}
+                                {res.adType && (
+                                    <div>
+                                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Ad Type</p>
+                                        <p className="text-xs text-gray-800 font-medium mt-0.5">{res.adType}</p>
+                                    </div>
+                                )}
+                                {res.vastVersion && (
+                                    <div>
+                                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">VAST Version</p>
+                                        <p className="text-xs text-gray-800 font-medium mt-0.5">{res.vastVersion}</p>
+                                    </div>
+                                )}
+                                {res.lastModified && (
+                                    <div>
+                                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Last Modified</p>
+                                        <p className="text-xs text-gray-800 font-medium mt-0.5">{res.lastModified} <span className="text-gray-400">PST</span></p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -197,16 +324,16 @@ export const DealQA: React.FC = () => {
 
                 for (let i = 0; i < Math.min(20, rawRows.length); i++) {
                     const rowStr = JSON.stringify(rawRows[i]).toLowerCase();
-                    if (rowStr.includes("deal meta id")) {
+                    if (rowStr.includes("deal name") || rowStr.includes("deal id")) {
                         headerRowIdx = i;
-                        console.log(`[DealQA] Found 'Deal Meta ID' header at row ${i}`);
+                        console.log(`[DealQA] Found deal header at row ${i}`);
                         break;
                     }
                 }
 
                 if (headerRowIdx === -1) {
-                    console.error("[DealQA] 'Deal Meta ID' column NOT found in first 20 rows.");
-                    alert("Could not find 'Deal Meta ID' column in the Excel file. Please add a 'Deal Meta ID' column with the numeric PubMatic Deal ID for each row.");
+                    console.error("[DealQA] 'Deal Name' column NOT found in first 20 rows.");
+                    alert("Could not find a 'Deal Name' column in the Excel file. Please ensure the sheet has a 'Deal Name' column.");
                     setIsProcessing(false);
                     return;
                 }
@@ -244,57 +371,109 @@ export const DealQA: React.FC = () => {
 
                     const getValue = (colName: string) => normalizedRow[colName.toLowerCase()];
 
-                    const apiDealId = String(getValue("Deal Meta ID") || "").trim();
                     const dealName = String(getValue("Deal Name") || getValue("Deal ID") || "").trim();
-                    const displayId = dealName || apiDealId || "Unknown";
 
-                    console.log(`[DealQA] Row ${i}: Deal Meta ID="${apiDealId}", Deal Name="${dealName}", All keys:`, Object.keys(normalizedRow));
+                    console.log(`[DealQA] Row ${i}: Deal Name="${dealName}", All keys:`, Object.keys(normalizedRow));
 
-                    if (!apiDealId || isNaN(Number(apiDealId))) {
+                    if (!dealName) {
                         validationResults.push({
-                            dealId: String(displayId),
-                            dealName: dealName,
+                            dealId: "Unknown",
+                            dealName: "",
                             status: 'SKIPPED',
-                            comments: apiDealId ? `Invalid Deal Meta ID '${apiDealId}' (must be numeric)` : "Empty 'Deal Meta ID' value"
+                            comments: "Empty 'Deal Name' value"
                         });
+                        setProgress(Math.round(((i + 1) / totalRows) * 100));
                         continue;
                     }
 
                     try {
-                        const apiData = await fetchDealDetails(String(apiDealId), token);
+                        // ── Step 1: API 1 — Search by Deal Name → returns full deal object ──
+                        setProgress(Math.round(((i * 2 + 1) / (totalRows * 2)) * 100));
+                        const dealItem = await fetchDealByName(dealName, token);
 
-                        let result: DealValidationResult;
-                        if (apiData) {
-                            const validationRow = {
-                                "Deal Name": getValue("Deal Name"),
-                                "CPM (INR)": getValue("CPM (INR)"),
-                                "Start Date (MM-DD-YY)": getValue("Start Date (MM-DD-YY)"),
-                                "End date (MM-DD-YY)": getValue("End date (MM-DD-YY)"),
-                                "Budget (INR)": getValue("Budget (INR)"),
-                                "Total Impressions": getValue("Total Impressions"),
-                                "Buyer Seat ID": getValue("Buyer Seat ID"),
-                                "DSP": getValue("DSP"),
-                                "Deal Type": getValue("Deal Type"),
-                                "Frequency Cap": getValue("Frequency Cap"),
-                                "Deal ID": displayId
-                            };
-
-                            result = validateDeal(validationRow, apiData);
-                            result.dealId = String(displayId);
-                            result.pubMaticDealId = String(apiDealId);
-                        } else {
-                            result = {
-                                dealId: String(displayId),
-                                dealName: dealName,
+                        if (!dealItem || !dealItem.id) {
+                            validationResults.push({
+                                dealId: dealName,
+                                dealName,
                                 status: 'ERROR',
-                                comments: "API Request Failed (Check ID/Token)"
-                            };
+                                comments: `Deal not found via API for name: "${dealName}"`
+                            });
+                            setProgress(Math.round(((i + 1) / totalRows) * 100));
+                            continue;
                         }
+
+                        const metaId = String(dealItem.id);
+                        const productId = extractProductId(dealItem);
+                        console.log(`[DealQA] Row ${i}: Meta ID=${metaId}, Product ID=${productId}`);
+
+                        // ── Step 2: Fetch Product Inventory (Site, Tag + additional info) ─
+                        setProgress(Math.round(((i * 2 + 2) / (totalRows * 2)) * 100));
+                        let siteId = "", siteName = "", tagId = "", tagName = "";
+                        let productData: any = null;
+
+                        if (productId) {
+                            productData = await fetchProductDetails(productId, token);
+                            const inv = extractInventoryInfo(productData);
+                            siteId = inv.siteId;
+                            siteName = inv.siteName;
+                            tagId = inv.tagId;
+                            tagName = inv.tagName;
+                            console.log(`[DealQA] Row ${i}: Site=${siteName}(${siteId}), Tag=${tagName}(${tagId})`);
+                        } else {
+                            console.warn(`[DealQA] Row ${i}: No product ID in deal — skipping inventory lookup`);
+                        }
+
+                        // ── Validate: compare Your Sheet vs API 1 deal data ───────────────
+                        const validationRow = {
+                            "Deal Name":              getValue("Deal Name"),
+                            "CPM (INR)":              getValue("CPM (INR)"),
+                            "Start Date (MM-DD-YY)":  getValue("Start Date (MM-DD-YY)"),
+                            "End date (MM-DD-YY)":    getValue("End date (MM-DD-YY)"),
+                            "Budget (INR)":           getValue("Budget (INR)"),
+                            "Total Impressions":      getValue("Total Impressions"),
+                            "Buyer Seat ID":          getValue("Buyer Seat ID"),
+                            "DSP":                    getValue("DSP"),
+                            "Deal Type":              getValue("Deal Type"),
+                            "Frequency Cap":          getValue("Frequency Cap"),
+                            "Deal ID":                dealName
+                        };
+
+                        // ── Additional info from API 1 (deal object) ────────────────────
+                        const buyerName        = dealItem?.buyers?.[0]?.name ?? "";
+                        const auctionType      = dealItem?.auctionType?.name ?? "";
+                        const priority         = dealItem?.priority != null ? String(dealItem.priority) : "";
+                        const lastModified     = dealItem?.modificationTime
+                            ? new Date(dealItem.modificationTime).toLocaleDateString("en-CA", { timeZone: "America/Los_Angeles" })
+                            : "";
+                        const dealCategory     = dealItem?.dealCategory?.name ?? "";
+
+                        // ── Additional info from product API (reuse productData from Step 2) ─
+                        const inventoryPlatform = productData?.platforms?.[0]?.name ?? "";
+                        const adType            = productData?.adTypes?.[0]?.name ?? "";
+                        const vastVersion       = productData?.vastVersions?.[0]?.name ?? "";
+
+                        const result = validateDeal(validationRow, dealItem);
+                        result.dealId           = dealName;
+                        result.pubMaticDealId   = metaId;
+                        result.productId        = productId  ?? undefined;
+                        result.siteId           = siteId     || undefined;
+                        result.siteName         = siteName   || undefined;
+                        result.tagId            = tagId      || undefined;
+                        result.tagName          = tagName    || undefined;
+                        result.buyerName        = buyerName  || undefined;
+                        result.auctionType      = auctionType || undefined;
+                        result.priority         = priority   || undefined;
+                        result.lastModified     = lastModified || undefined;
+                        result.dealCategory     = dealCategory || undefined;
+                        result.inventoryPlatform = inventoryPlatform || undefined;
+                        result.adType           = adType     || undefined;
+                        result.vastVersion      = vastVersion || undefined;
+
                         validationResults.push(result);
                     } catch (err) {
                         validationResults.push({
-                            dealId: String(displayId),
-                            dealName: dealName,
+                            dealId: dealName,
+                            dealName,
                             status: 'ERROR',
                             comments: "Exception during validation"
                         });
@@ -322,12 +501,11 @@ export const DealQA: React.FC = () => {
         XLSX.writeFile(wb, "Deal_QA_Report.xlsx");
     };
 
-    // Summary stats
-    const passCount = results.filter(r => r.status === 'PASS').length;
-    const failCount = results.filter(r => r.status === 'FAIL').length;
+    const passCount  = results.filter(r => r.status === 'PASS').length;
+    const failCount  = results.filter(r => r.status === 'FAIL').length;
     const errorCount = results.filter(r => r.status === 'ERROR').length;
-    const skipCount = results.filter(r => r.status === 'SKIPPED').length;
-    const passRate = results.length > 0 ? Math.round((passCount / results.length) * 100) : 0;
+    const skipCount  = results.filter(r => r.status === 'SKIPPED').length;
+    const passRate   = results.length > 0 ? Math.round((passCount / results.length) * 100) : 0;
 
     return (
         <div className="space-y-6">
@@ -352,9 +530,7 @@ export const DealQA: React.FC = () => {
                             />
                             <div className="flex flex-col items-center gap-3 transition-transform duration-300 group-hover:scale-105">
                                 <div className={`p-3 rounded-xl shadow-sm ${
-                                    tokenFile
-                                        ? 'bg-emerald-100 text-emerald-600'
-                                        : 'bg-white text-gray-400 shadow-gray-100'
+                                    tokenFile ? 'bg-emerald-100 text-emerald-600' : 'bg-white text-gray-400 shadow-gray-100'
                                 }`}>
                                     {tokenFile ? <CheckCircle className="w-7 h-7" /> : <FileText className="w-7 h-7" />}
                                 </div>
@@ -365,11 +541,10 @@ export const DealQA: React.FC = () => {
                                     {tokenFile && <p className="text-xs text-emerald-600 mt-1 font-medium">Token Loaded</p>}
                                 </div>
                             </div>
-                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-brand-blue/5 rounded-full blur-3xl -z-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                     </div>
 
-                    {/* Excel Upload */}
+                    {/* Deal Sheet Upload */}
                     <div className="space-y-2">
                         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider">2. Deal Sheet (.xlsx)</label>
                         <div className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 group cursor-pointer ${
@@ -385,9 +560,7 @@ export const DealQA: React.FC = () => {
                             />
                             <div className="flex flex-col items-center gap-3 transition-transform duration-300 group-hover:scale-105">
                                 <div className={`p-3 rounded-xl shadow-sm ${
-                                    excelFile
-                                        ? 'bg-blue-100 text-blue-600'
-                                        : 'bg-white text-gray-400 shadow-gray-100'
+                                    excelFile ? 'bg-blue-100 text-blue-600' : 'bg-white text-gray-400 shadow-gray-100'
                                 }`}>
                                     {excelFile ? <CheckCircle className="w-7 h-7" /> : <Upload className="w-7 h-7" />}
                                 </div>
@@ -398,7 +571,6 @@ export const DealQA: React.FC = () => {
                                     {excelFile && <p className="text-xs text-blue-600 mt-1 font-medium">File Ready</p>}
                                 </div>
                             </div>
-                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -z-0 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                     </div>
                 </div>
@@ -408,7 +580,7 @@ export const DealQA: React.FC = () => {
                     {isProcessing && (
                         <div className="mb-4 animate-fade-in">
                             <div className="flex justify-between items-center mb-2">
-                                <span className="text-xs font-medium text-gray-500">Processing deals...</span>
+                                <span className="text-xs font-medium text-gray-500">Fetching deal details &amp; inventory...</span>
                                 <span className="text-xs font-bold text-brand-blue font-mono">{progress}%</span>
                             </div>
                             <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -429,11 +601,10 @@ export const DealQA: React.FC = () => {
                                     : 'bg-gradient-to-r from-brand-blue to-brand-navy hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]'
                                 }`}
                         >
-                            {isProcessing ? (
-                                <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
-                            ) : (
-                                <><Play className="w-4 h-4" /> Run Validation</>
-                            )}
+                            {isProcessing
+                                ? <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+                                : <><Play className="w-4 h-4" /> Run Validation</>
+                            }
                         </button>
                     </div>
                 </div>
@@ -468,7 +639,7 @@ export const DealQA: React.FC = () => {
                 </div>
             )}
 
-            {/* Results — Card per deal with Parameter | Excel | API | Result table */}
+            {/* Results */}
             {results.length > 0 && (
                 <div className="animate-fade-in">
                     <div className="flex justify-between items-center mb-4">

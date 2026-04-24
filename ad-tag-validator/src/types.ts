@@ -91,6 +91,26 @@ export interface DealValidationResult {
     freqCapExcel?: string;
     freqCapApi?: string;
 
+    // API 2 → product info
+    productId?: string;
+    productName?: string;
+
+    // Inventory details (from product API)
+    siteId?: string;
+    siteName?: string;
+    tagId?: string;
+    tagName?: string;
+
+    // Additional info from API — not in sheet, shown as informational
+    buyerName?: string;         // buyers[0].name
+    auctionType?: string;       // auctionType.name
+    priority?: string;          // priority
+    lastModified?: string;      // modificationTime → PST date
+    dealCategory?: string;      // dealCategory.name
+    inventoryPlatform?: string; // product: platforms[0].name
+    adType?: string;            // product: adTypes[0].name
+    vastVersion?: string;       // product: vastVersions[0].name
+
     status: 'PASS' | 'FAIL' | 'SKIPPED' | 'ERROR';
     comments: string;
 }
